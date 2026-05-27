@@ -161,6 +161,22 @@ def create_router(db: Database) -> Router:
             reply_markup=calculation_actions_keyboard(calculation_id, source, page),
         )
 
+    async def send_calculation_card(
+        message: Message,
+        telegram_id: int,
+        calculation_id: int,
+        source: str,
+        page: int,
+    ) -> None:
+        calc = await db.get_calculation(telegram_id, calculation_id)
+        if calc is None:
+            await message.answer("Расчёт не найден.", reply_markup=main_menu_keyboard())
+            return
+        await message.answer(
+            await calc_card_text(calc),
+            reply_markup=calculation_actions_keyboard(calculation_id, source, page),
+        )
+
     @router.message(CommandStart())
     async def on_start(message: Message, state: FSMContext) -> None:
         await state.clear()
@@ -464,16 +480,38 @@ def create_router(db: Database) -> Router:
         await state.update_data(action=action, target_calc_id=calculation_id, return_source=source, return_page=page)
 
         if action == "comment":
-            await callback.message.answer("Введите комментарий к расчёту:", reply_markup=calc_step_keyboard(show_back=False))
+            await callback.message.answer("Введите комментарий к расчёту:", reply_markup=calc_step_keyboard(show_back=True))
         else:
-            await callback.message.answer("Введите название для сохранения:", reply_markup=calc_step_keyboard(show_back=False))
+            await callback.message.answer("Введите название для сохранения:", reply_markup=calc_step_keyboard(show_back=True))
         await callback.answer()
+
+    @router.message(BotStates.comment_text, F.text == BTN_BACK)
+    @router.message(BotStates.save_title, F.text == BTN_BACK)
+    async def back_from_calc_actions(message: Message, state: FSMContext) -> None:
+        data = await state.get_data()
+        calc_id = int(data.get("target_calc_id", 0))
+        source = data.get("return_source", "recent")
+        page = int(data.get("return_page", 1))
+        await state.clear()
+        if calc_id == 0:
+            await message.answer("Не удалось вернуться к расчёту.", reply_markup=main_menu_keyboard())
+            return
+        await message.answer("Возврат к карточке расчёта.", reply_markup=main_menu_keyboard())
+        await send_calculation_card(message, message.from_user.id, calc_id, source, page)
 
     @router.message(BotStates.comment_text)
     async def set_comment(message: Message, state: FSMContext) -> None:
         await state.update_data(comment_text=message.text.strip())
         await state.set_state(BotStates.leftovers_text)
-        await message.answer("Введите заметку по остаткам (или '-' чтобы пропустить):")
+        await message.answer(
+            "Введите заметку по остаткам (или '-' чтобы пропустить):",
+            reply_markup=calc_step_keyboard(show_back=True),
+        )
+
+    @router.message(BotStates.leftovers_text, F.text == BTN_BACK)
+    async def back_to_comment(message: Message, state: FSMContext) -> None:
+        await state.set_state(BotStates.comment_text)
+        await message.answer("Введите комментарий к расчёту:", reply_markup=calc_step_keyboard(show_back=True))
 
     @router.message(BotStates.leftovers_text)
     async def set_leftovers(message: Message, state: FSMContext) -> None:
