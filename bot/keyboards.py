@@ -39,12 +39,12 @@ def calc_step_keyboard(show_back: bool = True) -> ReplyKeyboardMarkup:
 def review_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🟢 Подтвердить", callback_data="review:confirm")],
-            [InlineKeyboardButton(text="🟡 Длина стойки", callback_data="review:edit:rack_length")],
-            [InlineKeyboardButton(text="🟡 Ширина ротанга", callback_data="review:edit:rattan_width")],
-            [InlineKeyboardButton(text="🟡 Диаметр корзины", callback_data="review:edit:basket_diameter")],
-            [InlineKeyboardButton(text="🟡 Кол-во жгутов", callback_data="review:edit:harness_count")],
-            [InlineKeyboardButton(text="🔴 Отмена", callback_data="review:cancel")],
+            [InlineKeyboardButton(text="Подтвердить", callback_data="review:confirm", style="success")],
+            [InlineKeyboardButton(text="Длина стойки", callback_data="review:edit:rack_length", style="primary")],
+            [InlineKeyboardButton(text="Ширина ротанга", callback_data="review:edit:rattan_width", style="primary")],
+            [InlineKeyboardButton(text="Диаметр корзины", callback_data="review:edit:basket_diameter", style="primary")],
+            [InlineKeyboardButton(text="Кол-во жгутов", callback_data="review:edit:harness_count", style="primary")],
+            [InlineKeyboardButton(text="Отмена", callback_data="review:cancel", style="danger")],
         ]
     )
 
@@ -52,9 +52,9 @@ def review_keyboard() -> InlineKeyboardMarkup:
 def pattern_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Добавить узор", callback_data="pattern_menu:add")],
-            [InlineKeyboardButton(text="Список узоров", callback_data="pattern_menu:list:1")],
-            [InlineKeyboardButton(text="Удалить узор", callback_data="pattern_menu:delete:1")],
+            [InlineKeyboardButton(text="Добавить узор", callback_data="pattern_menu:add", style="success")],
+            [InlineKeyboardButton(text="Список узоров", callback_data="pattern_menu:list:1", style="primary")],
+            [InlineKeyboardButton(text="Удалить узор", callback_data="pattern_menu:delete:1", style="danger")],
         ]
     )
 
@@ -85,9 +85,9 @@ def pattern_selector_keyboard(
     if nav_row:
         buttons.append(nav_row)
 
-    buttons.append([InlineKeyboardButton(text="Подтвердить узоры", callback_data="calc_patterns:confirm")])
-    buttons.append([InlineKeyboardButton(text="Без узоров", callback_data="calc_patterns:clear")])
-    buttons.append([InlineKeyboardButton(text="Назад к шагу", callback_data="calc_patterns:back")])
+    buttons.append([InlineKeyboardButton(text="Подтвердить узоры", callback_data="calc_patterns:confirm", style="success")])
+    buttons.append([InlineKeyboardButton(text="Без узоров", callback_data="calc_patterns:clear", style="danger")])
+    buttons.append([InlineKeyboardButton(text="Назад к шагу", callback_data="calc_patterns:back", style="primary")])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -99,14 +99,19 @@ def history_keyboard(items: list[dict], page: int, total: int, prefix: str) -> I
 
     if prefix == "history":
         for item in items:
-            text = f"#{item['id']} | {item['final_result']} | {item['created_at'][:16]}"
+            shown_time = item.get("display_time", item["created_at"])
+            text = f"#{item['id']} | {item['final_result']} | {shown_time}"
             callback_data = f"history:open:{item['id']}:{page}"
-            buttons.append([InlineKeyboardButton(text=text, callback_data=callback_data)])
+            buttons.append([InlineKeyboardButton(text=text, callback_data=callback_data, style="primary")])
     else:
         for item in items:
-            text = f"{item['title']} | {item['final_result']}"
+            shown_time = item.get("display_time")
+            if shown_time:
+                text = f"{item['title']} | {item['final_result']} | {shown_time}"
+            else:
+                text = f"{item['title']} | {item['final_result']}"
             callback_data = f"saved:open:{item['calculation_id']}:{page}"
-            buttons.append([InlineKeyboardButton(text=text, callback_data=callback_data)])
+            buttons.append([InlineKeyboardButton(text=text, callback_data=callback_data, style="primary")])
 
     nav_row: list[InlineKeyboardButton] = []
     if page > 1:
@@ -132,9 +137,9 @@ def history_keyboard(items: list[dict], page: int, total: int, prefix: str) -> I
 def calculation_actions_keyboard(calc_id: int, source: str, page: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🟡 Добавить комментарий", callback_data=f"calc_action:comment:{calc_id}:{source}:{page}")],
-            [InlineKeyboardButton(text="🟢 Сохранить с названием", callback_data=f"calc_action:save:{calc_id}:{source}:{page}")],
-            [InlineKeyboardButton(text="✅ Готово", callback_data=f"calc_action:done:{calc_id}:{source}:{page}")],
+            [InlineKeyboardButton(text="Добавить комментарий", callback_data=f"calc_action:comment:{calc_id}:{source}:{page}", style="primary")],
+            [InlineKeyboardButton(text="Сохранить с названием", callback_data=f"calc_action:save:{calc_id}:{source}:{page}", style="success")],
+            [InlineKeyboardButton(text="Готово", callback_data=f"calc_action:done:{calc_id}:{source}:{page}", style="primary")],
         ]
     )
 
@@ -148,7 +153,7 @@ def pattern_delete_keyboard(patterns: list[dict], page: int, per_page: int = 10)
     buttons: list[list[InlineKeyboardButton]] = []
     for pattern in patterns[start:end]:
         callback = f"pattern_delete:item:{pattern['id']}:{page}"
-        buttons.append([InlineKeyboardButton(text=f"Удалить: {pattern['name']}", callback_data=callback)])
+        buttons.append([InlineKeyboardButton(text=f"Удалить: {pattern['name']}", callback_data=callback, style="danger")])
 
     nav_row: list[InlineKeyboardButton] = []
     if page > 1:

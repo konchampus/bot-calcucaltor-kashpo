@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from math import ceil
 from typing import Any
 
@@ -63,6 +64,15 @@ PROMPTS = {
 
 def create_router(db: Database) -> Router:
     router = Router(name="calculator")
+    ekb_tz = timezone(timedelta(hours=5))
+
+    def format_ekb_datetime(raw_value: str) -> str:
+        # SQLite CURRENT_TIMESTAMP is UTC in "YYYY-MM-DD HH:MM:SS"
+        try:
+            base_utc = datetime.strptime(raw_value, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            return base_utc.astimezone(ekb_tz).strftime("%H:%M:%S %d.%m.%Y")
+        except Exception:
+            return raw_value
 
     async def ask_field(message: Message, state_name: str, show_back: bool) -> None:
         await message.answer(PROMPTS[state_name], reply_markup=calc_step_keyboard(show_back=show_back))
@@ -113,15 +123,23 @@ def create_router(db: Database) -> Router:
         history = await db.list_calculations(telegram_id, page=page, per_page=PER_PAGE)
         total_pages = max(1, ceil(history.total / PER_PAGE))
         page = min(max(1, page), total_pages)
+        prepared_items = [
+            {**item, "display_time": format_ekb_datetime(item["created_at"])}
+            for item in history.items
+        ]
         text = f"История расчётов (стр. {page}/{total_pages})"
-        await message.answer(text, reply_markup=history_keyboard(history.items, page, history.total, prefix="history"))
+        await message.answer(text, reply_markup=history_keyboard(prepared_items, page, history.total, prefix="history"))
 
     async def send_saved(message: Message, telegram_id: int, page: int) -> None:
         saved = await db.list_saved_calculations(telegram_id, page=page, per_page=PER_PAGE)
         total_pages = max(1, ceil(saved.total / PER_PAGE))
         page = min(max(1, page), total_pages)
+        prepared_items = [
+            {**item, "display_time": format_ekb_datetime(item["saved_at"])}
+            for item in saved.items
+        ]
         text = f"Сохранённые расчёты (стр. {page}/{total_pages})"
-        await message.answer(text, reply_markup=history_keyboard(saved.items, page, saved.total, prefix="saved"))
+        await message.answer(text, reply_markup=history_keyboard(prepared_items, page, saved.total, prefix="saved"))
 
     async def calc_card_text(calc: dict[str, Any], title: str | None = None) -> str:
         patterns = calc.get("patterns", [])
@@ -132,7 +150,7 @@ def create_router(db: Database) -> Router:
         parts = []
         if title:
             parts.append(f"Название: {title}")
-        parts.append(f"Расчёт #{calc['id']} от {calc['created_at'][:16]}")
+        parts.append(f"Расчёт #{calc['id']} от {format_ekb_datetime(calc['created_at'])}")
         parts.append(f"Длина стойки: {calc['rack_length']}")
         parts.append(f"Ширина ротанга: {calc['rattan_width']}")
         parts.append(f"Диаметр корзины: {calc['basket_diameter']}")
@@ -477,15 +495,23 @@ def create_router(db: Database) -> Router:
         if action == "done":
             if source == "history":
                 history = await db.list_calculations(callback.from_user.id, page=page, per_page=PER_PAGE)
+                prepared_items = [
+                    {**item, "display_time": format_ekb_datetime(item["created_at"])}
+                    for item in history.items
+                ]
                 await callback.message.edit_text(
                     f"История расчётов (стр. {page})",
-                    reply_markup=history_keyboard(history.items, page, history.total, prefix="history"),
+                    reply_markup=history_keyboard(prepared_items, page, history.total, prefix="history"),
                 )
             elif source == "saved":
                 saved = await db.list_saved_calculations(callback.from_user.id, page=page, per_page=PER_PAGE)
+                prepared_items = [
+                    {**item, "display_time": format_ekb_datetime(item["saved_at"])}
+                    for item in saved.items
+                ]
                 await callback.message.edit_text(
                     f"Сохранённые расчёты (стр. {page})",
-                    reply_markup=history_keyboard(saved.items, page, saved.total, prefix="saved"),
+                    reply_markup=history_keyboard(prepared_items, page, saved.total, prefix="saved"),
                 )
             else:
                 await callback.message.edit_reply_markup(reply_markup=None)
@@ -583,9 +609,13 @@ def create_router(db: Database) -> Router:
     async def history_page(callback: CallbackQuery) -> None:
         page = int(callback.data.split(":")[2])
         history = await db.list_calculations(callback.from_user.id, page=page, per_page=PER_PAGE)
+        prepared_items = [
+            {**item, "display_time": format_ekb_datetime(item["created_at"])}
+            for item in history.items
+        ]
         await callback.message.edit_text(
             f"История расчётов (стр. {page})",
-            reply_markup=history_keyboard(history.items, page, history.total, prefix="history"),
+            reply_markup=history_keyboard(prepared_items, page, history.total, prefix="history"),
         )
         await callback.answer()
 
@@ -605,9 +635,13 @@ def create_router(db: Database) -> Router:
     async def saved_page(callback: CallbackQuery) -> None:
         page = int(callback.data.split(":")[2])
         saved = await db.list_saved_calculations(callback.from_user.id, page=page, per_page=PER_PAGE)
+        prepared_items = [
+            {**item, "display_time": format_ekb_datetime(item["saved_at"])}
+            for item in saved.items
+        ]
         await callback.message.edit_text(
             f"Сохранённые расчёты (стр. {page})",
-            reply_markup=history_keyboard(saved.items, page, saved.total, prefix="saved"),
+            reply_markup=history_keyboard(prepared_items, page, saved.total, prefix="saved"),
         )
         await callback.answer()
 
