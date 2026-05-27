@@ -70,3 +70,39 @@ git branch -M main
 git remote add origin git@github.com:konchampus/bot-calcucaltor-kashpo.git
 git push -u origin main
 ```
+
+## Server deployment (own VPS/server)
+
+You can run this bot 24/7 on your own server in 2 ways.
+
+### Option A: Docker Compose (recommended)
+
+1. Copy project to server.
+2. Create `.env` (use `.env.example`).
+3. Run:
+
+```bash
+docker compose up -d --build
+```
+
+Data is persisted in `./data` on the host.
+
+### Option B: systemd + venv
+
+1. Copy project to `/opt/bot-calculator-cashpo`.
+2. Create venv and install deps.
+3. Put `.env` in project root.
+4. Install unit:
+
+```bash
+sudo cp deploy/systemd/bot-calculator-cashpo.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now bot-calculator-cashpo
+sudo systemctl status bot-calculator-cashpo
+```
+
+Logs:
+
+```bash
+journalctl -u bot-calculator-cashpo -f
+```

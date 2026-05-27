@@ -1,0 +1,15 @@
+[Unit]
+Description=bot-calculator-cashpo (aiogram telegram bot)
+After=network.target
+
+[Service]
+Type=simple
+User=bot
+WorkingDirectory=/opt/bot-calculator-cashpo
+EnvironmentFile=/opt/bot-calculator-cashpo/.env
+ExecStart=/opt/bot-calculator-cashpo/.venv/bin/python -m bot.main
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
