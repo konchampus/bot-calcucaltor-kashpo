@@ -4,6 +4,7 @@ from math import ceil
 from typing import Any
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -160,6 +161,13 @@ def create_router(db: Database) -> Router:
             await calc_card_text(calc, title=title),
             reply_markup=calculation_actions_keyboard(calculation_id, source, page),
         )
+
+    async def safe_edit_reply_markup(callback: CallbackQuery, reply_markup: Any) -> None:
+        try:
+            await callback.message.edit_reply_markup(reply_markup=reply_markup)
+        except TelegramBadRequest as exc:
+            if "message is not modified" not in str(exc).lower():
+                raise
 
     async def send_calculation_card(
         message: Message,
@@ -367,21 +375,29 @@ def create_router(db: Database) -> Router:
             else:
                 selected_ids.add(pattern_id)
             await state.update_data(selected_pattern_ids=list(selected_ids))
-            await callback.message.edit_reply_markup(
-                reply_markup=pattern_selector_keyboard(patterns, selected_ids, page=page, per_page=PER_PAGE)
+            await safe_edit_reply_markup(
+                callback,
+                pattern_selector_keyboard(patterns, selected_ids, page=page, per_page=PER_PAGE),
             )
 
         elif action == "page":
             page = int(parts[2])
-            await callback.message.edit_reply_markup(
-                reply_markup=pattern_selector_keyboard(patterns, selected_ids, page=page, per_page=PER_PAGE)
+            await safe_edit_reply_markup(
+                callback,
+                pattern_selector_keyboard(patterns, selected_ids, page=page, per_page=PER_PAGE),
             )
 
         elif action == "clear":
+            if not selected_ids:
+                await callback.answer("Узоры уже очищены")
+                return
             await state.update_data(selected_pattern_ids=[])
-            await callback.message.edit_reply_markup(
-                reply_markup=pattern_selector_keyboard(patterns, set(), page=1, per_page=PER_PAGE)
+            await safe_edit_reply_markup(
+                callback,
+                pattern_selector_keyboard(patterns, set(), page=1, per_page=PER_PAGE),
             )
+            await callback.answer("Выбор узоров очищен")
+            return
 
         elif action == "back":
             await state.set_state(BotStates.calc_harness_count)

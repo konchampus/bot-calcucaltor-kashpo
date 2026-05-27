@@ -39,12 +39,12 @@ def calc_step_keyboard(show_back: bool = True) -> ReplyKeyboardMarkup:
 def review_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="[GREEN] Подтвердить", callback_data="review:confirm")],
-            [InlineKeyboardButton(text="[EDIT] Длина стойки", callback_data="review:edit:rack_length")],
-            [InlineKeyboardButton(text="[EDIT] Ширина ротанга", callback_data="review:edit:rattan_width")],
-            [InlineKeyboardButton(text="[EDIT] Диаметр корзины", callback_data="review:edit:basket_diameter")],
-            [InlineKeyboardButton(text="[EDIT] Кол-во жгутов", callback_data="review:edit:harness_count")],
-            [InlineKeyboardButton(text="[RED] Отмена", callback_data="review:cancel")],
+            [InlineKeyboardButton(text="🟢 Подтвердить", callback_data="review:confirm")],
+            [InlineKeyboardButton(text="🟡 Длина стойки", callback_data="review:edit:rack_length")],
+            [InlineKeyboardButton(text="🟡 Ширина ротанга", callback_data="review:edit:rattan_width")],
+            [InlineKeyboardButton(text="🟡 Диаметр корзины", callback_data="review:edit:basket_diameter")],
+            [InlineKeyboardButton(text="🟡 Кол-во жгутов", callback_data="review:edit:harness_count")],
+            [InlineKeyboardButton(text="🔴 Отмена", callback_data="review:cancel")],
         ]
     )
 
@@ -132,9 +132,9 @@ def history_keyboard(items: list[dict], page: int, total: int, prefix: str) -> I
 def calculation_actions_keyboard(calc_id: int, source: str, page: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="[+] Добавить комментарий", callback_data=f"calc_action:comment:{calc_id}:{source}:{page}")],
-            [InlineKeyboardButton(text="[SAVE] Сохранить с названием", callback_data=f"calc_action:save:{calc_id}:{source}:{page}")],
-            [InlineKeyboardButton(text="[GREEN] Готово", callback_data=f"calc_action:done:{calc_id}:{source}:{page}")],
+            [InlineKeyboardButton(text="🟡 Добавить комментарий", callback_data=f"calc_action:comment:{calc_id}:{source}:{page}")],
+            [InlineKeyboardButton(text="🟢 Сохранить с названием", callback_data=f"calc_action:save:{calc_id}:{source}:{page}")],
+            [InlineKeyboardButton(text="✅ Готово", callback_data=f"calc_action:done:{calc_id}:{source}:{page}")],
         ]
     )
 
